@@ -1,0 +1,81 @@
+{
+  "name": "pi-pele",
+  "version": "0.1.0",
+  "description": "Render Mermaid diagrams in Pi with Pele",
+  "type": "module",
+  "license": "MIT",
+  "author": "Grant Hutchins",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nertzy/pi-pele.git"
+  },
+  "homepage": "https://github.com/nertzy/pi-pele#readme",
+  "bugs": {
+    "url": "https://github.com/nertzy/pi-pele/issues"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "devEngines": {
+    "packageManager": {
+      "name": "npm",
+      "version": ">=11.15.0",
+      "onFail": "error"
+    }
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "keywords": [
+    "pi-package",
+    "pi",
+    "pi-coding-agent",
+    "mermaid",
+    "diagrams",
+    "pele"
+  ],
+  "files": [
+    "extension.ts",
+    "src/**/*.ts",
+    "LICENSE"
+  ],
+  "exports": {
+    ".": "./extension.ts"
+  },
+  "pi": {
+    "extensions": [
+      "./extension.ts"
+    ]
+  },
+  "scripts": {
+    "test": "node --test test/*.test.ts",
+    "typecheck": "tsc --noEmit",
+    "check": "npm run lint && npm test && npm run typecheck && npm run pack:check",
+    "lint": "npm run lint:biome && npm run lint:markdown && actionlint .github/workflows/*.yml",
+    "lint:biome": "biome check --error-on-warnings .",
+    "lint:markdown": "markdownlint-cli2 \"**/*.md\" \"#node_modules\" \"#tmp\"",
+    "lint:fix": "biome check --write . && markdownlint-cli2 --fix \"**/*.md\" \"#node_modules\" \"#tmp\"",
+    "pack:check": "node scripts/check-package-contents.mjs"
+  },
+  "dependencies": {
+    "@resvg/resvg-js": "2.6.2",
+    "pele": "1.13.0"
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-ai": "*",
+    "@earendil-works/pi-coding-agent": "*",
+    "@earendil-works/pi-tui": "*",
+    "typebox": "*"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.6.6",
+    "@earendil-works/pi-ai": "1.5.2",
+    "@earendil-works/pi-coding-agent": "1.5.2",
+    "@earendil-works/pi-tui": "1.5.2",
+    "@types/node": "26.6.6",
+    "markdownlint-cli2": "0.24.0",
+    "typebox": "1.4.6",
+    "typescript": "7.0.2"
+  }
+}
