@@ -1,6 +1,13 @@
 /** Values for Pele's `--pele-*` CSS variables, keyed by variable name. */
 export type ThemeVariables = Readonly<Record<string, string>>;
 
+/**
+ * What lies behind a diagram: the theme's background, painted over the whole
+ * canvas, or nothing, for a diagram shown on a page that already has that
+ * color.
+ */
+export type Canvas = "painted" | "clear";
+
 // Pele writes ">" inside attribute values and text as "&gt;", so a raw ">"
 // always ends a tag and this cannot stop short inside an attribute.
 const TAG = /<[^>]*>/g;
@@ -28,11 +35,16 @@ const GEOMETRY = new Set(["rx", "ry"]);
  * every reference against `variables` (the theme) and the root's definitions,
  * computes the `color-mix()` Pele derives nested-subgraph borders with, moves
  * CSS-only geometry onto attributes, and paints the theme's background, which
- * Pele otherwise leaves to the page.
+ * Pele otherwise leaves to the page. A `clear` canvas leaves it to the page
+ * here too.
  *
  * Only markup is rewritten. A label that quotes `var(--x)` is text, and stays.
  */
-export function staticSvg(svg: string, variables: ThemeVariables): string {
+export function staticSvg(
+  svg: string,
+  variables: ThemeVariables,
+  canvas: Canvas = "painted",
+): string {
   const root = ROOT.exec(svg)?.[0];
   if (root === undefined) {
     throw new Error(
@@ -51,7 +63,9 @@ export function staticSvg(svg: string, variables: ThemeVariables): string {
   }
 
   const background =
-    '<rect width="100%" height="100%" fill="var(--pele-bg,#fff)"/>';
+    canvas === "painted"
+      ? '<rect width="100%" height="100%" fill="var(--pele-bg,#fff)"/>'
+      : "";
   const document = root + background + svg.slice(root.length);
   return document.replace(TAG, (tag) =>
     restyle(mixColors(resolve(tag, scope)), tag === root),

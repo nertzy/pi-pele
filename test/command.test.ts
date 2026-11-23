@@ -3,18 +3,14 @@ import { test } from "node:test";
 
 import { renderFences } from "../src/command.ts";
 import { decode } from "./png.ts";
-import {
-  headlessSession,
-  TERMINAL_BACKGROUND,
-  terminalSession,
-} from "./sessions.ts";
+import { headlessSession, terminalSession } from "./sessions.ts";
 
 const fence = (source: string) => `\`\`\`mermaid\n${source}\n\`\`\``;
 const FLOWCHART = fence("flowchart LR\n  A[Start] --> B[End]");
 const SEQUENCE = fence("sequenceDiagram\n  Alice->>Bob: Hello");
 const BROKEN = fence("flowchart LR\n  A --> [oops");
 
-test("renders each Mermaid fence in the Pi theme", () => {
+test("renders each Mermaid fence for the terminal's page", () => {
   const { diagrams, failures } = renderFences(
     `A flow:\n\n${FLOWCHART}\n\nand a sequence:\n\n${SEQUENCE}\n`,
     terminalSession("/"),
@@ -26,10 +22,7 @@ test("renders each Mermaid fence in the Pi theme", () => {
     ["flowchart", "sequence"],
   );
   for (const { png } of diagrams) {
-    assert.equal(
-      decode(Buffer.from(png, "base64")).corner,
-      TERMINAL_BACKGROUND,
-    );
+    assert.equal(decode(Buffer.from(png, "base64")).corner, "clear");
   }
 });
 

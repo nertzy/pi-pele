@@ -18,7 +18,7 @@ import {
 import extension from "../extension.ts";
 import { Figure } from "../src/figure.ts";
 import { decode } from "./png.ts";
-import { TERMINAL_BACKGROUND, terminalSession } from "./sessions.ts";
+import { terminalSession } from "./sessions.ts";
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const extensionPath = resolve(root, "extension.ts");
@@ -147,7 +147,7 @@ test("render_diagram draws a diagram in the session's theme, for the session alo
   ]);
   assert.equal(
     decode(Buffer.from(result.details.png, "base64")).corner,
-    TERMINAL_BACKGROUND,
+    "clear",
   );
 });
 
@@ -328,7 +328,7 @@ test("/pele shows the last assistant message's diagrams", async () => {
   const [{ data } = { data: undefined }] = appended;
   assert.equal(
     decode(Buffer.from((data as { png: string }).png, "base64")).corner,
-    TERMINAL_BACKGROUND,
+    "clear",
   );
 });
 

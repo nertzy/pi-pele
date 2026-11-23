@@ -5,10 +5,9 @@ import type { TextContent } from "@earendil-works/pi-ai";
 import { withFileMutationQueue } from "@earendil-works/pi-coding-agent";
 
 import { type Diagram, renderDiagram } from "./diagram.ts";
-import { type Session, sessionThemeVariables } from "./pi-theme.ts";
+import { type Look, type Session, sessionLook } from "./pi-theme.ts";
 import { previewPng } from "./preview.ts";
 import { rasterize } from "./rasterize.ts";
-import type { ThemeVariables } from "./static-svg.ts";
 import { THEMES } from "./themes.ts";
 
 /** The `render_diagram` tool's arguments. */
@@ -47,7 +46,8 @@ const FILE_MAX_SIDE = 8192;
  *
  * A diagram that is only looked at matches the Pi theme. A file is shown
  * somewhere else (a README, a slide), where this session's colors mean
- * nothing, so writing one requires the caller to choose its theme.
+ * nothing, so writing one requires the caller to choose its theme. It has no
+ * page behind it there either, so its canvas is always painted.
  */
 export async function renderDiagramCall(
   params: RenderDiagramParams,
@@ -67,7 +67,8 @@ export async function renderDiagramCall(
   const source =
     params.source ??
     (await readFile(inCwd(session, params.path ?? ""), "utf8"));
-  const diagram = renderDiagram(source, themeVariables(params.theme, session));
+  const { theme, canvas } = look(params.theme, session);
+  const diagram = renderDiagram(source, theme, canvas);
   const rendered = `Rendered ${diagram.type} diagram, ${diagram.width}x${diagram.height}.`;
 
   if (output === undefined) {
@@ -76,7 +77,8 @@ export async function renderDiagramCall(
       details: { png: previewPng(diagram) },
     };
   }
-  const written = await write(diagram, inCwd(session, output), {
+  const file = canvas === "painted" ? diagram : renderDiagram(source, theme);
+  const written = await write(file, inCwd(session, output), {
     format,
     scale: params.scale ?? FILE_SCALE,
   });
@@ -109,13 +111,14 @@ function inCwd(session: Session, path: string): string {
   return resolve(session.cwd, path.replace(/^@/, ""));
 }
 
-function themeVariables(
-  theme: RenderDiagramParams["theme"],
-  session: Session,
-): ThemeVariables {
+/**
+ * A fixed theme is drawn on its own background wherever it is shown: a dark
+ * diagram on a light terminal's page would not be readable.
+ */
+function look(theme: RenderDiagramParams["theme"], session: Session): Look {
   return theme === "light" || theme === "dark"
-    ? THEMES[theme]
-    : sessionThemeVariables(session);
+    ? { theme: THEMES[theme], canvas: "painted" }
+    : sessionLook(session);
 }
 
 /**

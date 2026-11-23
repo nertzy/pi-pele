@@ -53,9 +53,11 @@ Pi's `terminal.imageWidthCells` setting does not apply: it sets the width of the
 
 ## Themes
 
-A diagram that is only viewed in the session takes its colors from the active Pi theme, so it looks like part of the conversation. Where Pi has no terminal UI (print, JSON, and RPC modes) it uses the light theme.
+A diagram that is only viewed in the session takes its colors from the active Pi theme and has no background of its own: the terminal shows through, so it sits on the page as the text around it does. Where Pi has no terminal UI (print, JSON, and RPC modes) it uses the light theme on a white background.
 
-A diagram written to a file is shown somewhere else, such as a README or a slide, where the session's colors mean nothing. Writing one therefore requires a `theme`, and the model is told to choose `light` or `dark` from where the file will be displayed. Choose `pi` to keep the session's colors in the file.
+A diagram viewed with `theme` set to `light` or `dark` keeps that theme's background, since a dark diagram would not be readable on a light terminal.
+
+A diagram written to a file is shown somewhere else, such as a README or a slide, where the session's colors mean nothing. Writing one therefore requires a `theme`, and the model is told to choose `light` or `dark` from where the file will be displayed. Choose `pi` to keep the session's colors in the file, on a background of the terminal's color.
 
 A diagram's own `themeVariables`, set in its front matter or an `init` directive, take precedence over all three.
 
@@ -67,6 +69,7 @@ A diagram's own `themeVariables`, set in its front matter or an `init` directive
 - Images that a diagram links to are not fetched or embedded. The node keeps its label.
 - An SVG file has its colors written in, so it does not adapt to a page's light or dark mode the way Pele's own output can.
 - A `/pele` image keeps the colors of the theme that was active when it was drawn.
+- Pele fills a few small areas inside a diagram with the background color, such as the patch behind an edge label. They take the terminal's background color as Pi reads it. Where a terminal does not report its color, Pi goes by whether the terminal is light or dark, and those areas can differ slightly from the page.
 
 ## Contributing
 

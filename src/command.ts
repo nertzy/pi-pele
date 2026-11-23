@@ -2,7 +2,7 @@ import { PeleError } from "pele";
 
 import { renderDiagram } from "./diagram.ts";
 import { mermaidFences } from "./fences.ts";
-import { type Session, sessionThemeVariables } from "./pi-theme.ts";
+import { type Session, sessionLook } from "./pi-theme.ts";
 import { previewPng } from "./preview.ts";
 
 /** A diagram kept in the session for display only. */
@@ -23,11 +23,11 @@ export interface FenceRenders {
 export function renderFences(markdown: string, session: Session): FenceRenders {
   const diagrams: DiagramEntry[] = [];
   const failures: string[] = [];
-  const theme = sessionThemeVariables(session);
+  const { theme, canvas } = sessionLook(session);
 
   mermaidFences(markdown).forEach((source, index) => {
     try {
-      const diagram = renderDiagram(source, theme);
+      const diagram = renderDiagram(source, theme, canvas);
       diagrams.push({ type: diagram.type, png: previewPng(diagram) });
     } catch (error) {
       if (!(error instanceof PeleError)) throw error;
