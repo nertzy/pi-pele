@@ -41,6 +41,22 @@ test("paints the theme's background behind the diagram", () => {
   );
 });
 
+test("leaves the canvas clear when asked to", () => {
+  const result = staticSvg(svg("<g/>"), { "--pele-bg": "#101010" }, "clear");
+
+  assert.equal(body(result), "<g/>");
+});
+
+test("still colors what the diagram itself fills with the background", () => {
+  const result = staticSvg(
+    svg('<rect fill="var(--_bg)"/>'),
+    { "--pele-bg": "#101010" },
+    "clear",
+  );
+
+  assert.equal(body(result), '<rect fill="#101010"/>');
+});
+
 test("lets a variable the diagram sets on its root override the theme", () => {
   const result = staticSvg(
     svg(

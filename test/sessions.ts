@@ -2,10 +2,11 @@ import { rgbColor } from "@earendil-works/pi-tui";
 
 import type { Session } from "../src/pi-theme.ts";
 
-/** The background of `terminalSession`'s theme, as a PNG pixel. */
-export const TERMINAL_BACKGROUND = "0a141e";
-
-/** A Pi session in the terminal UI, themed with colors no fixed theme uses. */
+/**
+ * A Pi session in the terminal UI, themed with colors no fixed theme uses.
+ * Its theme is not one Pi made, so Pi has no page color for it and a diagram
+ * takes the panel color, `0a141e` in a PNG, for its background.
+ */
 export function terminalSession(cwd: string): Session {
   return {
     cwd,

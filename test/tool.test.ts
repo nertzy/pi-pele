@@ -24,13 +24,13 @@ function preview(result: Awaited<ReturnType<typeof renderDiagramCall>>): Png {
   return decode(Buffer.from(result.details.png, "base64"));
 }
 
-test("draws the diagram in the Pi theme's colors", async () => {
+test("draws the diagram on a clear canvas, for the terminal's page", async () => {
   const result = await renderDiagramCall(
     { source: FLOWCHART },
     terminalSession(cwd),
   );
 
-  assert.equal(preview(result).corner, "0a141e");
+  assert.equal(preview(result).corner, "clear");
 });
 
 test("tells the model what was rendered, in text alone", async () => {
@@ -119,7 +119,7 @@ test("reads a path a model prefixed with @", async () => {
     terminalSession(cwd),
   );
 
-  assert.equal(preview(result).corner, "0a141e");
+  assert.equal(result.content[0]?.text, "Rendered flowchart diagram, 199x64.");
 });
 
 test("writes an SVG in the chosen theme, at the diagram's own size", async () => {
@@ -168,12 +168,15 @@ test("writes a PNG at two pixels per unit unless told otherwise", async () => {
 });
 
 test("writes a file in the Pi theme only when asked to", async () => {
-  await renderDiagramCall(
+  const result = await renderDiagramCall(
     { source: FLOWCHART, output: "flow.png", theme: "pi" },
     terminalSession(cwd),
   );
 
+  // A file has no page behind it, so its canvas is painted. The preview has
+  // the terminal's.
   assert.equal(decode(await readFile(join(cwd, "flow.png"))).corner, "0a141e");
+  assert.equal(preview(result).corner, "clear");
 });
 
 test("asks for a theme before writing a file", async () => {

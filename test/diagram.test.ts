@@ -87,3 +87,18 @@ test("does not embed images a diagram links to", () => {
 
   assert.doesNotMatch(svg, /<image\b/);
 });
+
+test("takes series colors, and nothing else, from a diagram's own themeVariables", () => {
+  const pie = 'pie\n  "Dogs" : 3\n  "Cats" : 2';
+  const own =
+    '%%{init: {"themeVariables": {"pie1": "#ab12cd", "background": "#0b0c0d", "primaryTextColor": "#fefdfc"}}}%%\n';
+
+  const plain = renderDiagram(pie, THEMES.light);
+  const colored = renderDiagram(own + pie, THEMES.light);
+
+  assert.doesNotMatch(plain.svg, /#ab12cd/);
+  assert.match(colored.svg, /#ab12cd/);
+  // A clear canvas relies on this: the source cannot darken the background or
+  // lighten the text, so a session's colors always suit the terminal's page.
+  assert.doesNotMatch(colored.svg, /#0b0c0d|#fefdfc/);
+});
