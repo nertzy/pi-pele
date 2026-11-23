@@ -8,6 +8,8 @@ import { decode, type Png } from "./png.ts";
 import { headlessSession, terminalSession } from "./sessions.ts";
 
 const FLOWCHART = "flowchart LR\n  A[Start] --> B[End]";
+/** Ten boxes in a row: wider than any terminal shows at full size. */
+const WIDE = `flowchart LR\n${Array.from({ length: 9 }, (_, step) => `  N${step}[Step number ${step}] --> N${step + 1}[Step number ${step + 1}]`).join("\n")}`;
 
 let cwd: string;
 beforeEach(async () => {
@@ -17,38 +19,64 @@ afterEach(async () => {
   await rm(cwd, { recursive: true });
 });
 
-/** The PNG a result shows inline. */
+/** The PNG a result gives the session to draw. */
 function preview(result: Awaited<ReturnType<typeof renderDiagramCall>>): Png {
-  const image = result.content.find((part) => part.type === "image");
-  assert.ok(image);
-  assert.equal(image.mimeType, "image/png");
-  return decode(Buffer.from(image.data, "base64"));
+  return decode(Buffer.from(result.details.png, "base64"));
 }
 
-test("shows the diagram inline in the Pi theme's colors", async () => {
+test("draws the diagram in the Pi theme's colors", async () => {
   const result = await renderDiagramCall(
     { source: FLOWCHART },
     terminalSession(cwd),
   );
 
-  assert.deepEqual(result.content[0], {
-    type: "text",
-    text: "Rendered flowchart diagram, 199x64.",
-  });
   assert.equal(preview(result).corner, "0a141e");
 });
 
-test("draws a small diagram on a canvas as wide as the terminal shows it", async () => {
+test("tells the model what was rendered, in text alone", async () => {
   const result = await renderDiagramCall(
     { source: FLOWCHART },
     terminalSession(cwd),
   );
 
-  // 600 CSS pixels at two device pixels each; the height is the diagram's own.
+  assert.deepEqual(result.content, [
+    { type: "text", text: "Rendered flowchart diagram, 199x64." },
+  ]);
+});
+
+test("draws a small diagram on a canvas of its own size", async () => {
+  const result = await renderDiagramCall(
+    { source: FLOWCHART },
+    terminalSession(cwd),
+  );
+
+  // Two device pixels to each of the diagram's 199 by 64.
   assert.deepEqual(
     { width: preview(result).width, height: preview(result).height },
-    { width: 1200, height: 128 },
+    { width: 398, height: 128 },
   );
+});
+
+test("draws a wide diagram as sharp as a small one", async () => {
+  const result = await renderDiagramCall(
+    { source: WIDE },
+    terminalSession(cwd),
+  );
+
+  assert.equal(result.content[0]?.text, "Rendered flowchart diagram, 1858x64.");
+  assert.deepEqual(
+    { width: preview(result).width, height: preview(result).height },
+    { width: 3716, height: 128 },
+  );
+});
+
+test("says nothing of a file when it wrote none", async () => {
+  const result = await renderDiagramCall(
+    { source: FLOWCHART },
+    terminalSession(cwd),
+  );
+
+  assert.equal(result.details.wrote, undefined);
 });
 
 test("uses the light theme when Pi has no terminal UI to match", async () => {
@@ -107,6 +135,7 @@ test("writes an SVG in the chosen theme, at the diagram's own size", async () =>
     type: "text",
     text: "Rendered flowchart diagram, 199x64. Wrote docs/images/flow.svg.",
   });
+  assert.equal(result.details.wrote, "Wrote docs/images/flow.svg.");
   // The preview is the file's diagram, so it shows the file's theme.
   assert.equal(preview(result).corner, "1e1e1e");
 });

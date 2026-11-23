@@ -28,34 +28,3 @@ export function renderDiagram(source: string, theme: ThemeVariables): Diagram {
   });
   return { svg: staticSvg(svg, theme), width, height, type };
 }
-
-/**
- * Widen a diagram's canvas to at least `minWidth`, keeping the drawing at its
- * size and at the left edge, where a terminal's other content starts.
- *
- * A terminal draws an image at a fixed number of columns however small the
- * image is. A two-node diagram stretched to that width fills the screen with
- * two enormous boxes; on a canvas about as wide as the columns it is given, it
- * is drawn near its natural size instead.
- */
-export function widen(diagram: Diagram, minWidth: number): Diagram {
-  if (diagram.width >= minWidth) return diagram;
-
-  const { width, height } = diagram;
-  const canvas = `viewBox="0 0 ${width} ${height}" width="${width}"`;
-  const start = diagram.svg.indexOf(canvas);
-  if (start === -1 || start > diagram.svg.indexOf(">")) {
-    throw new Error(
-      `Expected Pele's SVG to open with ${canvas}, got: ${diagram.svg.slice(0, 120)}`,
-    );
-  }
-  const widened = `viewBox="0 0 ${minWidth} ${height}" width="${minWidth}"`;
-  return {
-    ...diagram,
-    svg:
-      diagram.svg.slice(0, start) +
-      widened +
-      diagram.svg.slice(start + canvas.length),
-    width: minWidth,
-  };
-}

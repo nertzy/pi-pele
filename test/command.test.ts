@@ -33,11 +33,12 @@ test("renders each Mermaid fence in the Pi theme", () => {
   }
 });
 
-test("draws a fence as wide as the terminal shows it", () => {
+test("draws a fence on a canvas of its own size", () => {
   const [diagram] = renderFences(FLOWCHART, terminalSession("/")).diagrams;
 
   assert.ok(diagram);
-  assert.equal(decode(Buffer.from(diagram.png, "base64")).width, 1200);
+  // Two device pixels to each of the diagram's 199.
+  assert.equal(decode(Buffer.from(diagram.png, "base64")).width, 398);
 });
 
 test("uses the light theme when Pi has no terminal UI to match", () => {

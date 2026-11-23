@@ -3,7 +3,7 @@ import { test } from "node:test";
 
 import { PeleError } from "pele";
 
-import { renderDiagram, widen } from "../src/diagram.ts";
+import { renderDiagram } from "../src/diagram.ts";
 import { THEMES } from "../src/themes.ts";
 import { SAMPLES } from "./samples.ts";
 
@@ -87,37 +87,3 @@ test("does not embed images a diagram links to", () => {
 
   assert.doesNotMatch(svg, /<image\b/);
 });
-
-test("widens a narrow diagram's canvas without scaling the drawing", () => {
-  const diagram = renderDiagram(FLOWCHART, THEMES.dark);
-  const wide = widen(diagram, diagram.width + 300);
-
-  assert.equal(wide.width, diagram.width + 300);
-  assert.equal(wide.height, diagram.height);
-  assert.match(
-    wide.svg,
-    new RegExp(
-      `^<svg [^>]*viewBox="0 0 ${wide.width} ${wide.height}" width="${wide.width}" height="${wide.height}"`,
-    ),
-  );
-  // The background is sized in percent, so it covers the added canvas too.
-  assert.match(wide.svg, /<rect width="100%" height="100%" fill="#1e1e1e"\/>/);
-  assert.equal(
-    wide.svg.slice(wide.svg.indexOf(">")),
-    diagram.svg.slice(diagram.svg.indexOf(">")),
-  );
-});
-
-test("leaves a diagram that is already wide enough alone", () => {
-  const diagram = renderDiagram(FLOWCHART, THEMES.light);
-
-  assert.equal(widen(diagram, diagram.width), diagram);
-});
-
-for (const [name, source] of Object.entries(SAMPLES)) {
-  test(`can widen the canvas of a ${name} diagram`, () => {
-    const diagram = renderDiagram(source, THEMES.light);
-
-    assert.equal(widen(diagram, diagram.width + 1).width, diagram.width + 1);
-  });
-}

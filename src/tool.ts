@@ -1,7 +1,7 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, extname, resolve } from "node:path";
 
-import type { ImageContent, TextContent } from "@earendil-works/pi-ai";
+import type { TextContent } from "@earendil-works/pi-ai";
 import { withFileMutationQueue } from "@earendil-works/pi-coding-agent";
 
 import { type Diagram, renderDiagram } from "./diagram.ts";
@@ -20,9 +20,17 @@ export interface RenderDiagramParams {
   readonly scale?: number;
 }
 
+/** What the session keeps of a call to draw it, and no model reads. */
+export interface RenderDiagramDetails {
+  /** The diagram as a base64 PNG. */
+  readonly png: string;
+  /** A sentence naming the file the call wrote, when it wrote one. */
+  readonly wrote?: string;
+}
+
 export interface RenderDiagramResult {
-  readonly content: (TextContent | ImageContent)[];
-  readonly details: undefined;
+  readonly content: TextContent[];
+  readonly details: RenderDiagramDetails;
 }
 
 /** Device pixels per CSS pixel in a PNG file, unless the call sets `scale`. */
@@ -32,6 +40,10 @@ const FILE_MAX_SIDE = 8192;
 /**
  * Render a diagram for the session to look at, and write it to a file when
  * `output` names one.
+ *
+ * The picture is for the person at the terminal. The model already has the
+ * Mermaid source, so its part of the result is text, and the PNG travels in
+ * `details`, which Pi keeps out of a model's context.
  *
  * A diagram that is only looked at matches the Pi theme. A file is shown
  * somewhere else (a README, a slide), where this session's colors mean
@@ -56,24 +68,22 @@ export async function renderDiagramCall(
     params.source ??
     (await readFile(inCwd(session, params.path ?? ""), "utf8"));
   const diagram = renderDiagram(source, themeVariables(params.theme, session));
-  const summary = [
-    `Rendered ${diagram.type} diagram, ${diagram.width}x${diagram.height}.`,
-  ];
+  const rendered = `Rendered ${diagram.type} diagram, ${diagram.width}x${diagram.height}.`;
 
-  if (output !== undefined) {
-    const written = await write(diagram, inCwd(session, output), {
-      format,
-      scale: params.scale ?? FILE_SCALE,
-    });
-    summary.push(`Wrote ${output}${written}.`);
+  if (output === undefined) {
+    return {
+      content: [{ type: "text", text: rendered }],
+      details: { png: previewPng(diagram) },
+    };
   }
-
+  const written = await write(diagram, inCwd(session, output), {
+    format,
+    scale: params.scale ?? FILE_SCALE,
+  });
+  const wrote = `Wrote ${output}${written}.`;
   return {
-    content: [
-      { type: "text", text: summary.join(" ") },
-      { type: "image", data: previewPng(diagram), mimeType: "image/png" },
-    ],
-    details: undefined,
+    content: [{ type: "text", text: `${rendered} ${wrote}` }],
+    details: { png: previewPng(diagram), wrote },
   };
 }
 

@@ -1,14 +1,22 @@
 import assert from "node:assert/strict";
-import { dirname, resolve } from "node:path";
-import { test } from "node:test";
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { dirname, join, resolve } from "node:path";
+import { afterEach, beforeEach, test } from "node:test";
 import { fileURLToPath } from "node:url";
 
 import {
   discoverAndLoadExtensions,
   type ExtensionAPI,
 } from "@earendil-works/pi-coding-agent";
+import {
+  getCellDimensions,
+  resetCapabilitiesCache,
+  setCapabilities,
+  setCellDimensions,
+} from "@earendil-works/pi-tui";
 import extension from "../extension.ts";
-import { KeptDiagram } from "../src/galley.ts";
+import { Figure } from "../src/figure.ts";
 import { decode } from "./png.ts";
 import { TERMINAL_BACKGROUND, terminalSession } from "./sessions.ts";
 
@@ -72,6 +80,53 @@ const plainTheme = {
   bold: (text: string) => text,
 };
 
+/** A theme that shows which color text is in. */
+const namingTheme = {
+  ...plainTheme,
+  fg: (color: string, text: string) => `<${color}>${text}`,
+};
+
+/** What Pi tells a renderer about the call it draws: a finished one, unless overridden. */
+const callState = (overrides: Record<string, unknown> = {}) => ({
+  isPartial: false,
+  isError: false,
+  showImages: true,
+  outputPad: 1,
+  state: {},
+  ...overrides,
+});
+
+const rendered = (component: { render(width: number): string[] }) =>
+  component.render(200).map((row) => row.trimEnd());
+
+/** Run the tool, and hand back what it registered and what it returned. */
+async function renderFlowchart(params: Record<string, unknown> = {}) {
+  const tool = load().registered["tool render_diagram"];
+  const result = await tool.execute(
+    "call-1",
+    { source: FLOWCHART, ...params },
+    undefined,
+    undefined,
+    terminalSession(cwd),
+  );
+  return { tool, result };
+}
+
+let cwd: string;
+const terminalCells = getCellDimensions();
+
+beforeEach(async () => {
+  cwd = await mkdtemp(join(tmpdir(), "pi-pele-"));
+  setCapabilities({ images: "kitty", trueColor: true, hyperlinks: false });
+  setCellDimensions({ widthPx: 10, heightPx: 20 });
+});
+
+afterEach(async () => {
+  await rm(cwd, { recursive: true });
+  resetCapabilitiesCache();
+  setCellDimensions(terminalCells);
+});
+
 test("Pi loads the package entry with its tool and command", async () => {
   const loaded = await discoverAndLoadExtensions([extensionPath], root);
 
@@ -84,42 +139,171 @@ test("Pi loads the package entry with its tool and command", async () => {
   assert.deepEqual([...found.commands.keys()], ["pele"]);
 });
 
-test("render_diagram shows a diagram in the session's theme", async () => {
-  const tool = load().registered["tool render_diagram"];
+test("render_diagram draws a diagram in the session's theme, for the session alone", async () => {
+  const { result } = await renderFlowchart();
 
-  const result = await tool.execute(
-    "call-1",
-    { source: FLOWCHART },
-    undefined,
-    undefined,
-    terminalSession("/"),
-  );
-
-  assert.equal(result.content[0].text, "Rendered flowchart diagram, 199x64.");
+  assert.deepEqual(result.content, [
+    { type: "text", text: "Rendered flowchart diagram, 199x64." },
+  ]);
   assert.equal(
-    decode(Buffer.from(result.content[1].data, "base64")).corner,
+    decode(Buffer.from(result.details.png, "base64")).corner,
     TERMINAL_BACKGROUND,
   );
 });
 
-test("render_diagram's call line names the diagram, not its whole source", () => {
-  const tool = load().registered["tool render_diagram"];
-
-  const line = tool.renderCall({ source: FLOWCHART }, plainTheme);
-
-  assert.deepEqual(
-    line.render(80).map((row: string) => row.trimEnd()),
-    ["render_diagram flowchart LR"],
-  );
+test("render_diagram draws its own output, outside a tool box", () => {
+  assert.equal(load().registered["tool render_diagram"].renderShell, "self");
 });
 
-test("render_diagram's call line lets pi-galley draw its image at natural size", () => {
+test("while it renders, render_diagram is one muted line naming the diagram", () => {
   const tool = load().registered["tool render_diagram"];
 
-  const line = tool.renderCall({ source: FLOWCHART }, plainTheme);
+  const line = tool.renderCall(
+    { source: FLOWCHART },
+    namingTheme,
+    callState({ isPartial: true }),
+  );
 
-  assert.equal(line[Symbol.for("pi-galley.image-width")], "natural");
-  assert.equal(line[Symbol.for("pi-galley.full-width")], true);
+  assert.deepEqual(rendered(line), [" <muted>render_diagram flowchart LR"]);
+});
+
+test("render_diagram's line names the tool alone until arguments arrive", () => {
+  const tool = load().registered["tool render_diagram"];
+
+  const line = tool.renderCall({}, plainTheme, callState({ isPartial: true }));
+
+  assert.deepEqual(rendered(line), [" render_diagram"]);
+});
+
+test("once it has rendered, render_diagram's line is gone", () => {
+  const tool = load().registered["tool render_diagram"];
+
+  const line = tool.renderCall({ source: FLOWCHART }, plainTheme, callState());
+
+  assert.deepEqual(rendered(line), []);
+});
+
+test("a failed render_diagram keeps its line, to say what failed", () => {
+  const tool = load().registered["tool render_diagram"];
+
+  const line = tool.renderCall(
+    { source: FLOWCHART },
+    plainTheme,
+    callState({ isError: true }),
+  );
+
+  assert.deepEqual(rendered(line), [" render_diagram flowchart LR"]);
+});
+
+test("render_diagram's result is the figure and nothing else", async () => {
+  const { tool, result } = await renderFlowchart();
+
+  const lines = rendered(
+    tool.renderResult(result, { expanded: false }, plainTheme, callState()),
+  );
+
+  // 398 by 128 pixels, in cells of 10 by 20.
+  assert.match(lines[0] ?? "", /c=39,r=6/);
+  assert.deepEqual(lines.slice(1), ["", "", "", "", ""]);
+});
+
+test("a result that wrote a file names it under the figure", async () => {
+  const { tool, result } = await renderFlowchart({
+    output: "flow.svg",
+    theme: "light",
+  });
+
+  const lines = rendered(
+    tool.renderResult(result, { expanded: false }, namingTheme, callState()),
+  );
+
+  assert.match(lines[0] ?? "", /c=39,r=6/);
+  assert.deepEqual(lines.slice(6), [" <muted>Wrote flow.svg."]);
+});
+
+test("a result drawn again keeps the terminal's copy of its figure", async () => {
+  const { tool, result } = await renderFlowchart();
+  const call = callState();
+  const imageId = () =>
+    /i=(\d+)/.exec(
+      rendered(
+        tool.renderResult(result, { expanded: false }, plainTheme, call),
+      )[0] ?? "",
+    )?.[1];
+
+  const first = imageId();
+
+  assert.ok(first);
+  assert.equal(imageId(), first);
+});
+
+test("where the terminal draws no images, a result is its text", async () => {
+  setCapabilities({ images: null, trueColor: true, hyperlinks: false });
+  const { tool, result } = await renderFlowchart();
+
+  const view = tool.renderResult(
+    result,
+    { expanded: false },
+    namingTheme,
+    callState(),
+  );
+
+  assert.deepEqual(rendered(view), [
+    " <muted>Rendered flowchart diagram, 199x64.",
+  ]);
+});
+
+test("with images turned off in Pi, a result is its text", async () => {
+  const { tool, result } = await renderFlowchart();
+
+  const view = tool.renderResult(
+    result,
+    { expanded: false },
+    plainTheme,
+    callState({ showImages: false }),
+  );
+
+  assert.deepEqual(rendered(view), [" Rendered flowchart diagram, 199x64."]);
+});
+
+test("a result an earlier version kept is its text, above the image Pi draws for it", () => {
+  const tool = load().registered["tool render_diagram"];
+  const kept = {
+    content: [
+      { type: "text", text: "Rendered flowchart diagram, 199x64." },
+      { type: "image", data: "", mimeType: "image/png" },
+    ],
+    details: undefined,
+  };
+
+  const view = tool.renderResult(
+    kept,
+    { expanded: false },
+    plainTheme,
+    callState(),
+  );
+
+  assert.deepEqual(rendered(view), [" Rendered flowchart diagram, 199x64."]);
+});
+
+test("a diagram that does not parse is reported in the error color", () => {
+  const tool = load().registered["tool render_diagram"];
+  const failed = {
+    content: [{ type: "text", text: "Parse error on line 2:\n  A --> [oops" }],
+    details: undefined,
+  };
+
+  const view = tool.renderResult(
+    failed,
+    { expanded: false },
+    namingTheme,
+    callState({ isError: true }),
+  );
+
+  assert.deepEqual(rendered(view), [
+    " <error>Parse error on line 2:",
+    " <error>  A --> [oops",
+  ]);
 });
 
 test("/pele shows the last assistant message's diagrams", async () => {
@@ -195,7 +379,7 @@ test("/pele reports a diagram that does not parse", async () => {
   assert.match(notices[0]?.message ?? "", /^Diagram 2: Parse error on line 2:/);
 });
 
-test("a kept diagram is drawn as an image", () => {
+test("a kept diagram is drawn as a figure", () => {
   const renderer = load().registered["entry pele-diagram"];
   const png = Buffer.from("stands in for a PNG").toString("base64");
 
@@ -205,5 +389,5 @@ test("a kept diagram is drawn as an image", () => {
     plainTheme,
   );
 
-  assert.ok(component instanceof KeptDiagram);
+  assert.ok(component instanceof Figure);
 });

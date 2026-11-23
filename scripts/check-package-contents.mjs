@@ -9,7 +9,7 @@ const expectedFiles = [
   "src/command.ts",
   "src/diagram.ts",
   "src/fences.ts",
-  "src/galley.ts",
+  "src/figure.ts",
   "src/pi-theme.ts",
   "src/preview.ts",
   "src/rasterize.ts",
