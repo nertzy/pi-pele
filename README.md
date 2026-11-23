@@ -38,6 +38,12 @@ When a reply contains Mermaid code fences, run `/pele` to see them drawn:
 
 It renders every Mermaid fence in the last assistant message. The images are for you: they are kept in the session for display and never sent to the model.
 
+## Size
+
+Pi draws a tool's images at one width for every tool, its `terminal.imageWidthCells` setting, and a `/pele` image at most 60 cells wide. A diagram wider than that is shrunk to fit.
+
+With [pi-galley](https://github.com/nertzy/pi-galley) 0.2.0 or later installed, both are drawn at their own size instead, one image pixel per terminal pixel, in a block as wide as the terminal. A wide diagram gets the room it needs, up to the terminal's width, and a small one stays small. pi-pele works the same as before without pi-galley.
+
 ## Themes
 
 A diagram that is only viewed in the session takes its colors from the active Pi theme, so it looks like part of the conversation. Where Pi has no terminal UI (print, JSON, and RPC modes) it uses the light theme.
