@@ -54,7 +54,9 @@ export function staticSvg(
 
   // Pele defines its variables on the root only, so one scope serves the whole
   // document. The root's definitions win over the theme's: that is how a
-  // diagram's own palette (`themeVariables` in its frontmatter) reaches CSS.
+  // diagram's own series colors (`themeVariables` in its frontmatter) reach
+  // CSS. Pele carries no other variable from the source, so the background
+  // and the text are always the theme's.
   const scope = new Map(Object.entries(variables));
   for (const declaration of declarations(root)) {
     if (declaration.property.startsWith("--")) {

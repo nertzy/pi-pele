@@ -59,7 +59,7 @@ A diagram viewed with `theme` set to `light` or `dark` keeps that theme's backgr
 
 A diagram written to a file is shown somewhere else, such as a README or a slide, where the session's colors mean nothing. Writing one therefore requires a `theme`, and the model is told to choose `light` or `dark` from where the file will be displayed. Choose `pi` to keep the session's colors in the file, on a background of the terminal's color.
 
-A diagram's own `themeVariables`, set in its front matter or an `init` directive, take precedence over all three.
+A diagram's own series colors take precedence over all three: the `themeVariables` that color a chart's slices, plots, sections, or branches, such as `pie1` or `git0`, set in its front matter or an `init` directive. Its other `themeVariables`, such as a background or a text color, are not used.
 
 ## Scope and limitations
 
