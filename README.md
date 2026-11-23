@@ -15,13 +15,15 @@ Run `/reload` in existing sessions, or start a new one. It needs Node.js 24 or l
 
 ## Render a diagram
 
-The `render_diagram` tool lets the model draw a diagram and see the result. Ask for one:
+The `render_diagram` tool lets the model draw a diagram for you. Ask for one:
 
 ```text
 Draw a sequence diagram of the login flow in src/auth.
 ```
 
-The model writes the Mermaid text, the tool renders it, and the image appears under the tool call. A syntax error comes back with its line and a pointer into the source, so the model can fix it and try again.
+The model writes the Mermaid text, the tool renders it, and the diagram appears in the session as a figure: the picture alone, with no tool box around it. A syntax error comes back with its line and a pointer into the source, so the model can fix it and try again.
+
+The picture is for you. The model already has the Mermaid text, so it is told the diagram's type and size and is not sent the image.
 
 | Argument | Meaning                                                        |
 | -------- | -------------------------------------------------------------- |
@@ -43,9 +45,11 @@ It renders every Mermaid fence in the last assistant message. The images are for
 
 ## Size
 
-Pi draws a tool's images at one width for every tool, its `terminal.imageWidthCells` setting, and a `/pele` image at most 60 cells wide. A diagram wider than that is shrunk to fit.
+A diagram is drawn at its own size, one image pixel per terminal pixel, and not scaled to a fixed width. A small diagram stays small, and labels are the same size in every diagram. A diagram wider than the terminal is shrunk to fit it.
 
-With [pi-galley](https://github.com/nertzy/pi-galley) 0.2.0 or later installed, both are drawn at their own size instead, one image pixel per terminal pixel, in a block as wide as the terminal. A wide diagram gets the room it needs, up to the terminal's width, and a small one stays small. pi-pele works the same as before without pi-galley.
+Pi's `terminal.imageWidthCells` setting does not apply: it sets the width of the images Pi draws for a tool, and pi-pele draws its own.
+
+[pi-galley](https://github.com/nertzy/pi-galley) sets a session's transcript in a column. Where it is installed, a diagram wider than the column runs past it, up to the terminal's width.
 
 ## Themes
 
@@ -58,7 +62,7 @@ A diagram's own `themeVariables`, set in its front matter or an `init` directive
 ## Scope and limitations
 
 - Pele draws the diagrams, not Mermaid.js. It supports many but not all Mermaid diagram types, and its layouts differ. [Pele's documentation](https://pele.run) lists what it supports.
-- Inline images need a terminal that Pi can draw images in, such as Ghostty, Kitty, WezTerm, or iTerm2. Elsewhere Pi shows a text placeholder, and writing files still works.
+- Inline images need a terminal that Pi can draw images in, such as Ghostty, Kitty, WezTerm, or iTerm2. Elsewhere a line of text stands in for the image, and writing files still works.
 - Pele sizes labels for a Helvetica-like font. PNGs are drawn with the first installed font of Arial, Helvetica, Liberation Sans, DejaVu Sans, and Noto Sans, so on a system with none of them labels may not fit their boxes.
 - Images that a diagram links to are not fetched or embedded. The node keeps its label.
 - An SVG file has its colors written in, so it does not adapt to a page's light or dark mode the way Pele's own output can.

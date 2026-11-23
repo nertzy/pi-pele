@@ -1,17 +1,13 @@
-import { type Diagram, widen } from "./diagram.ts";
+import type { Diagram } from "./diagram.ts";
 import { rasterize } from "./rasterize.ts";
 
 /**
- * CSS pixels Pi's terminal UI gives an inline image: its default 60 columns
- * at about ten pixels each. A preview's canvas is at least this wide, so a
- * small diagram is not stretched across all 60 columns.
+ * Sharp on a high-density display. The session draws a preview and no model
+ * reads it, so its longest side is held only to what a PNG file's is.
  */
-const WIDTH = 600;
+const RASTER = { scale: 2, maxSide: 8192 };
 
-/** Sharp on a high-density display, and small enough to send to a model. */
-const RASTER = { scale: 2, maxSide: 2000 };
-
-/** A diagram as the base64 PNG a Pi session shows inline. */
+/** A diagram as the base64 PNG a Pi session draws in its transcript. */
 export function previewPng(diagram: Diagram): string {
-  return rasterize(widen(diagram, WIDTH), RASTER).png.toString("base64");
+  return rasterize(diagram, RASTER).png.toString("base64");
 }
