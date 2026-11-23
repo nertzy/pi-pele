@@ -1,5 +1,8 @@
 # pi-pele
 
+[![CI](https://github.com/nertzy/pi-pele/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/nertzy/pi-pele/actions/workflows/ci.yml)
+![npm: unpublished](https://img.shields.io/badge/npm-unpublished-lightgrey)
+
 Render Mermaid diagrams in [Pi](https://github.com/earendil-works/pi) with [Pele](https://pele.run), Obsidian's Mermaid-to-SVG renderer. Diagrams appear inline in the session, colored to match your Pi theme, and can be written to SVG or PNG files. Rendering happens in-process: no browser, no network, no external command.
 
 ## Install
