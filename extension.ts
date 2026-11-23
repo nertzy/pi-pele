@@ -3,10 +3,11 @@ import {
   type ExtensionAPI,
   type SessionEntry,
 } from "@earendil-works/pi-coding-agent";
-import { Image, Text } from "@earendil-works/pi-tui";
+import { Text } from "@earendil-works/pi-tui";
 import { Type } from "typebox";
 
 import { type DiagramEntry, renderFences } from "./src/command.ts";
+import { atNaturalSize, KeptDiagram } from "./src/galley.ts";
 import { callSummary, renderDiagramCall } from "./src/tool.ts";
 
 /** The session entry type that keeps a `/pele` diagram on screen. */
@@ -59,10 +60,12 @@ const renderDiagramTool = defineTool({
   execute: (_toolCallId, params, _signal, _onUpdate, ctx) =>
     renderDiagramCall(params, ctx),
   renderCall: (args, theme) =>
-    new Text(
-      `${theme.fg("toolTitle", theme.bold("render_diagram"))} ${theme.fg("muted", callSummary(args))}`,
-      0,
-      0,
+    atNaturalSize(
+      new Text(
+        `${theme.fg("toolTitle", theme.bold("render_diagram"))} ${theme.fg("muted", callSummary(args))}`,
+        0,
+        0,
+      ),
     ),
 });
 
@@ -71,7 +74,7 @@ export default function pele(pi: ExtensionAPI): void {
 
   pi.registerEntryRenderer<DiagramEntry>(ENTRY, (entry, _options, theme) =>
     entry.data
-      ? new Image(entry.data.png, "image/png", {
+      ? new KeptDiagram(entry.data.png, {
           fallbackColor: (text) => theme.fg("muted", text),
         })
       : undefined,

@@ -7,9 +7,8 @@ import {
   discoverAndLoadExtensions,
   type ExtensionAPI,
 } from "@earendil-works/pi-coding-agent";
-import { Image } from "@earendil-works/pi-tui";
-
 import extension from "../extension.ts";
+import { KeptDiagram } from "../src/galley.ts";
 import { decode } from "./png.ts";
 import { TERMINAL_BACKGROUND, terminalSession } from "./sessions.ts";
 
@@ -114,6 +113,15 @@ test("render_diagram's call line names the diagram, not its whole source", () =>
   );
 });
 
+test("render_diagram's call line lets pi-galley draw its image at natural size", () => {
+  const tool = load().registered["tool render_diagram"];
+
+  const line = tool.renderCall({ source: FLOWCHART }, plainTheme);
+
+  assert.equal(line[Symbol.for("pi-galley.image-width")], "natural");
+  assert.equal(line[Symbol.for("pi-galley.full-width")], true);
+});
+
 test("/pele shows the last assistant message's diagrams", async () => {
   const { registered, appended } = load();
   const { ctx, notices } = sessionWith(
@@ -197,5 +205,5 @@ test("a kept diagram is drawn as an image", () => {
     plainTheme,
   );
 
-  assert.ok(component instanceof Image);
+  assert.ok(component instanceof KeptDiagram);
 });
